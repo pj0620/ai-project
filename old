@@ -1,0 +1,92 @@
+### OTHER SHIT
+plt.figure(1)
+used_edges = set([(path[i-1], path[i]) for i in range(1, len(path))])
+pos = nx.spring_layout(graph)
+nx.draw_networkx_nodes(graph,pos=pos)
+nx.draw_networkx_labels(graph,pos=pos)
+# colors = ['r', 'b', 'y']
+# linewidths = [20,10,5]
+nx.draw_networkx_edges(graph,pos=pos,edgelist=used_edges,edge_color = "black", width=2)
+plt.title("My Algorithm")
+
+
+### ATTEMPT 3
+    def bone_crossover(self,chromosome_1,chromosome_2):
+        # get all possible subsequences in chromosomes 1 and 2
+        subseqs_1 = self.get_sub_lists(chromosome_1)
+        subseqs_2 = self.get_sub_lists(chromosome_2)
+
+        # find  subsequences common to both chromosomes
+        inter_subseqs = [subseq for subseq in subseqs_1 if subseq in subseqs_2]
+
+        # find subsequence with maximum size
+        max_subseq = None
+        max_length = -1
+        for subseq in inter_subseqs:
+            length = len(subseq)
+            if max_subseq is None or length > max_length:
+                max_subseq = subseq
+                max_length = length
+        seq = max_subseq
+        inter_subseqs.remove(seq)
+
+def get_sub_lists(self,list):
+    list2 = [*list,*list]
+    sublist=[[]]
+    for offset in range(len(list)):
+        for i in range(len(list)+1):
+            for j in range(i + 1, len(list) + 1):
+                sub=list2[i+offset:j+offset]
+                if not sub in sublist:
+                    sublist.append(sub)
+
+    return sublist
+
+### ATTEMPT 2
+length = len(chromosome_1)
+        subsequences = []
+        checked=0
+        i_cur = 0
+        while checked < length:
+            j = 0
+            count = 0
+            i = i_cur
+            while chromosome_2[j] != chromosome_1[i] and count < length:
+                j  += 1
+                j=j % length
+                count += 1
+            i_cur += 1
+            if j < len(chromosome_2):
+                print(f"chromosome1[{i}] = {chromosome_1[i]} , chromosome1[{j}] = {chromosome_2[j]}")
+            else:
+                print(f"no math for chromosome1[{i}] = {chromosome_1[i]}")
+
+            inter_seq = []
+            while chromosome_2[j] == chromosome_1[i] and len(inter_seq) <= length:
+                inter_seq.append(chromosome_2[j])
+                i += 1
+                i = i % length
+                j += 1
+                j = j % length
+
+            subsequences.append(inter_seq)
+
+### ATTEMPT 1
+# create all possible subsequence from chromosome_1
+        #
+        #   subsequences[gene] = list of subsequences starting with gene
+        subsequences={}
+        for gene in chromosome_1:
+            subsequences.setdefault(gene,[])
+            for subsequence in subsequences.values():
+                for sssequence in subsequence:
+                    sssequence.append(gene)
+            subsequences[gene].append([gene])
+        print(f"subsequences = {subsequences}")
+
+        inter_subsequences = {}
+        possible_subsequences = set()
+            idx = 0
+            possible_subsequences = subsequences[chromosome_2[idx]]
+            for subseq in possible_subsequences:
+                if
