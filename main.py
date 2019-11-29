@@ -4,6 +4,7 @@ from solvers import *
 
 # load undircted graph
 problem = tsplib95.load_problem('tsplib/mytest.tsp')
+# problem = tsplib95.load_problem('tsplib/ch130.tsp')
 graph: networkx.Graph = problem.get_graph()
 
 solver = MySolver(g=2)

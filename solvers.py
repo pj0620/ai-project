@@ -240,18 +240,17 @@ class MySolver(Solver):
             # loop over ants
             for k in range(self.N):
 
-                # which city out of n total cities in final path
-                for j in range(self.n):
-                    # current city of this ant
-                    r=self.G[i][k]
-                    self.paths[i][k][j]=r
-                    self.J[i][k].remove(r)
+                r=self.G[i][k]
+                self.paths[i][k][0]=r
 
+                # which city out of n total cities in final path
+                for j in range(1, self.n):
+                    # current city of this ant
+                    self.J[i][k].remove(r)
                     q=random.random()
 
-                    print(f"finding next city")
-
                     # find next city
+                    next_r = -1
                     if q < self.q0:
                         best_u, max_val=None, -1
                         for u in self.J[i][k]:
@@ -260,7 +259,7 @@ class MySolver(Solver):
                                 max_val=val
                                 best_u=u
                         if not (best_u is None):
-                            self.G[i][k]=best_u
+                            next_r = best_u
                     else:
                         sum_vals=sum(self.tau[i][r][u] * (self.dist_inv(r, u) ** self.beta) for u in self.J[i][k])
                         sum_probs=0
@@ -271,8 +270,12 @@ class MySolver(Solver):
                                 prob=(self.tau[i][r][s] * (self.dist_inv(r, s) ** self.beta)) / sum_vals
                                 sum_probs+=prob
                                 if sum_probs > self.q0:
-                                    self.G[i][k]=s
+                                    next_r = s
                                     break
+
+                    self.paths[i][k][j] = next_r
+                    r = next_r
+        print(f"self.paths[0][0] = {self.paths[0][0]}")
         s=set()
         for city in self.paths[0][0]:
             if city in s:
@@ -318,6 +321,7 @@ class MySolver(Solver):
         self.tau=np.ones(shape=(self.g, self.n + 2, self.n + 2)) * self.tau_0
 
         # location of each ant in each group
+        print(f"self.graph.nodes = {list(self.graph.nodes)}")
         self.G=np.array([[random.choice(list(self.graph.nodes)) for __ in range(self.N)] for _ in range(self.g)])
 
         # set of cities not yet visited by kth ant of the ith group
