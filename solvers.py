@@ -59,10 +59,10 @@ class MySolver(Solver):
         self.initialize_variables()
         self.step1()
         self.step2()
-        return
         self.step3()
         while self.cycle_count < self.max_cycles:
             self.step4()
+            return
             self.sanity_check()
             self.step5()
             self.step6()
@@ -195,8 +195,8 @@ class MySolver(Solver):
         # select gene pool
         self.gene_pool = np.zeros(shape=(self.g,self.x+self.y,self.n))
         for i in range(self.g):
-            sum_fitness=sum(self.fitness[i])
             for j in range(self.x):
+                # TODO current
                 idx = self.roulette_wheel_select(self.fitness[i])
                 self.gene_pool[i][j] = self.chromosomes[i][idx]
             for u in range(self.x,self.x+self.y):
@@ -494,9 +494,10 @@ class MySolver(Solver):
         r = random.random()
         cur = 0
         idx = 0
+        cur+=fitness[idx]
         while cur/sum_fitness < r:
-            cur += fitness[idx]
             idx += 1
+            cur+=fitness[idx]
         idx = min(idx,len(fitness)-1)
         return idx
 
