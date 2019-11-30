@@ -51,8 +51,7 @@ class MySolver(Solver):
         self.problem=problem
         self.initialize_variables()
         self.step1()
-        pass
-
+        return
         self.step2()
         self.step3()
         while self.cycle_count < self.max_cycles:
@@ -252,6 +251,7 @@ class MySolver(Solver):
                     # find next city
                     next_r = -1
                     if q < self.q0:
+                        # if False:
                         best_u, max_val=None, -1
                         for u in self.J[i][k]:
                             val=self.tau[i][r][u] * (self.dist_inv(r, u) ** self.beta)
@@ -263,25 +263,19 @@ class MySolver(Solver):
                     else:
                         sum_vals=sum(self.tau[i][r][u] * (self.dist_inv(r, u) ** self.beta) for u in self.J[i][k])
                         sum_probs=0
-                        nodes_shuffled=list(self.graph.nodes)
+                        nodes_shuffled=list(self.J[i][k])
                         random.shuffle(nodes_shuffled)
+                        rc = random.random()
                         for s in nodes_shuffled:
-                            if s in self.J[i][k]:
-                                prob=(self.tau[i][r][s] * (self.dist_inv(r, s) ** self.beta)) / sum_vals
-                                sum_probs+=prob
-                                if sum_probs > self.q0:
-                                    next_r = s
-                                    break
+                            prob=(self.tau[i][r][s] * (self.dist_inv(r, s) ** self.beta)) / sum_vals
+                            sum_probs+=prob
+                            if sum_probs > rc:
+                                next_r = s
+                                break
 
                     self.paths[i][k][j] = next_r
                     r = next_r
-        print(f"self.paths[0][0] = {self.paths[0][0]}")
-        s=set()
-        for city in self.paths[0][0]:
-            if city in s:
-                print("dup " + str(city))
-            else:
-                s.add(city)
+
         assert len(set(self.paths[0][0])) - len(self.paths[0][0]) == 0
 
         # STEP 1.2
