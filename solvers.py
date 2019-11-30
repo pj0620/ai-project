@@ -51,8 +51,8 @@ class MySolver(Solver):
         self.problem=problem
         self.initialize_variables()
         self.step1()
-        return
         self.step2()
+        return
         self.step3()
         while self.cycle_count < self.max_cycles:
             self.step4()
@@ -210,14 +210,19 @@ class MySolver(Solver):
         for i in range(self.g):
             for k in range(self.N):
                 edges = set()
-                for j in range(len(self.paths[i][k]) - 1):
-                    edge = (self.paths[i][k][j],
-                            self.paths[i][k][j + 1])
+                for j in range(self.n):
+                    edge = (self.paths[i][k][ j   %self.n],
+                            self.paths[i][k][(j+1)%self.n])
                     self.path_lengths[i][k] += self.dist(*edge)
                     edges.add(edge)
                 if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
                     L_best[i] = self.path_lengths[i][k]
                     edges_best[i] = edges
+        for i in range(self.g):
+            print(10*"-" + f" {i} " + 10*"-")
+            print(f"paths = {self.paths[i]}")
+            print(f"edges_best = {edges_best[i]}")
+            print(f"path_lengths = {self.path_lengths[i]}")
 
         # update pheromone levels
         for i in range(self.g):
