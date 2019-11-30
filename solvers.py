@@ -45,6 +45,13 @@ class MySolver(Solver):
             self.fitness=self.x=self.y=\
             self.gene_pool=None
 
+    def print_pher(self):
+        np.set_printoptions(precision=1)
+        for i in range(self.g):
+            print(10*"-" + f" {i} " + 10*"-")
+            print("tau = ")
+            print(f"{self.tau[i]}")
+
     def solve(self, problem):
         min_lengths = []
 
@@ -218,11 +225,6 @@ class MySolver(Solver):
                 if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
                     L_best[i] = self.path_lengths[i][k]
                     edges_best[i] = edges
-        for i in range(self.g):
-            print(10*"-" + f" {i} " + 10*"-")
-            print(f"paths = {self.paths[i]}")
-            print(f"edges_best = {edges_best[i]}")
-            print(f"path_lengths = {self.path_lengths[i]}")
 
         # update pheromone levels
         for i in range(self.g):
@@ -231,9 +233,9 @@ class MySolver(Solver):
                     del_tau = 0
                     if (r, s) in edges_best[i]:
                         del_tau = 1. / L_best[i]
-                    self.tau[i][r][s] = (1-self.rho)*self.tau[i][r][s] \
-                                            + self.rho*del_tau
-                    self.tau[i][r][s] = min(self.tau_max, self.tau[i][r][s])
+                    self.set_pheromone(i,r,s, (1-self.rho)*self.get_pheromone(i,r,s) \
+                                                + self.rho*del_tau)
+                    self.set_pheromone(i,r,s,min(self.tau_max, self.get_pheromone(i,r,s)))
 
     def step1(self):
         # STEP 1.1
@@ -259,7 +261,7 @@ class MySolver(Solver):
                         # if False:
                         best_u, max_val=None, -1
                         for u in self.J[i][k]:
-                            val=self.tau[i][r][u] * (self.dist_inv(r, u) ** self.beta)
+                            val=self.get_pheromone(i,r,u) * (self.dist_inv(r, u) ** self.beta)
                             if val > max_val or max_val is None:
                                 max_val=val
                                 best_u=u
@@ -272,7 +274,7 @@ class MySolver(Solver):
                         random.shuffle(nodes_shuffled)
                         rc = random.random()
                         for s in nodes_shuffled:
-                            prob=(self.tau[i][r][s] * (self.dist_inv(r, s) ** self.beta)) / sum_vals
+                            prob=(self.get_pheromone(i,r,s) * (self.dist_inv(r, s) ** self.beta)) / sum_vals
                             sum_probs+=prob
                             if sum_probs > rc:
                                 next_r = s
@@ -287,10 +289,13 @@ class MySolver(Solver):
         for i in range(self.g):
             for s in list(self.graph.nodes):
                 for r in list(self.graph.nodes):
-                    if self.tau[i][r][s] < self.tau_min:
-                        self.tau[i][r][s]=self.tau_min
+                    if self.get_pheromone(i,r,s) < self.tau_min:
+                        self.set_pheromone(i,r,s,self.tau_min)
                     else:
-                        self.tau[i][r][s]=(1 - self.rho) * self.tau[i][r][s] + self.rho * self.tau_0
+                        self.set_pheromone(i,r,s,
+                                           (1 - self.rho) * self.get_pheromone(i,r,s) +
+                                           self.rho * self.tau_0
+                                           )
 
     def initialize_variables(self):
         self.graph: networkx.Graph=self.problem.get_graph()
@@ -335,6 +340,15 @@ class MySolver(Solver):
         self.paths=np.ones(shape=(self.g, self.N, self.n))
 
         self.fitness = None
+
+    def set_pheromone(self,group_num,u,v,new_val):
+        n1=max(u, v)
+        n2=min(u, v)
+        self.tau[group_num][n1][n2] = new_val
+    def get_pheromone(self,group_num,u,v):
+        n1 = max(u, v)
+        n2 = min(u, v)
+        return self.tau[group_num][n1][n2]
 
     def path_len(self, path):
         length = 0
