@@ -3,6 +3,7 @@ from networkx import *
 import random
 import numpy as np
 import math
+from collections import Counter
 
 class Solver(ABC):
     def __init__(self):
@@ -52,6 +53,13 @@ class MySolver(Solver):
             print("tau = ")
             print(f"{self.tau[i]}")
 
+    def print_gene_pool(self):
+        np.set_printoptions(precision=1)
+        for i in range(self.g):
+            print(10*"-" + f" {i} " + 10*"-")
+            print("gene pool = ")
+            print(f"{self.gene_pool[i]}")
+
     def solve(self, problem):
         min_lengths = []
 
@@ -62,9 +70,8 @@ class MySolver(Solver):
         self.step3()
         while self.cycle_count < self.max_cycles:
             self.step4()
-            return
-            self.sanity_check()
             self.step5()
+            return
             self.step6()
             self.step7()
             if self.cycle_count % self.C == 0 or True:
@@ -123,10 +130,7 @@ class MySolver(Solver):
                     self.tau[i][r][s] = max(self.tau_min,self.tau[i][r][s])
 
     def step7(self):
-        self.fitness = np.zeros(shape=(self.g, self.N))
-        for i in range(self.g):
-            for k in range(self.N):
-                self.fitness[i][k] = self.path_len(self.chromosomes[i][k])
+        self.compute_fitness()
 
     def step6(self):
         k = 1.38064852e-23
@@ -173,12 +177,14 @@ class MySolver(Solver):
             chromosome_2=random.choice(self.chromosomes[i])
 
             # perform crossover with probability CR
-            if random.random() > self.CR:
-                continue
+            # if random.random() > self.CR:
+            #     continue
+            # TODO uncomment
 
             # choose bone-crossover or two point crossover
             child = None
-            if random.random() > self.R0:
+            # if random.random() > self.R0:
+            if True:
                 child = self.bone_crossover(chromosome_1,chromosome_2,i)
             else:
                 child = self.two_point_crossover(chromosome_1,chromosome_2)
@@ -190,13 +196,12 @@ class MySolver(Solver):
     def step4(self):
         # find fitness of each path
         if self.fitness is None:
-            self.fitness = np.ones(shape=(self.g, self.N))
+            self.compute_fitness()
 
         # select gene pool
         self.gene_pool = np.zeros(shape=(self.g,self.x+self.y,self.n))
         for i in range(self.g):
             for j in range(self.x):
-                # TODO current
                 idx = self.roulette_wheel_select(self.fitness[i])
                 self.gene_pool[i][j] = self.chromosomes[i][idx]
             for u in range(self.x,self.x+self.y):
@@ -341,6 +346,12 @@ class MySolver(Solver):
 
         self.fitness = None
 
+    def compute_fitness(self):
+        self.fitness=np.zeros(shape=(self.g, self.N))
+        for i in range(self.g):
+            for k in range(self.N):
+                self.fitness[i][k]=self.path_len(self.chromosomes[i][k])
+
     def set_pheromone(self,group_num,u,v,new_val):
         n1=max(u, v)
         n2=min(u, v)
@@ -363,19 +374,25 @@ class MySolver(Solver):
         loc_0 = random.randint(0,len(chromosome_1))
         loc_1 = random.randint(loc_0,len(chromosome_1))
 
-        child = np.array(
-                [*chromosome_1[:loc_0],
-                 *chromosome_2[loc_0:loc_1],
-                 *chromosome_1[loc_1:]])
+        chromosome = None
+        if random.random() < 0.5:
+            chromosome = chromosome_1
+        else:
+            chromosome = chromosome_2
 
-        # add any unvisited cities
-        unvisited = set(gene for gene in chromosome_1 if not(gene in child))
-        seen = set()
-        for i in range(len(child)):
-            if child[i] in seen:
-                child[i] = unvisited.pop()
-            else:
-                seen.add(child[i])
+        child = np.array(
+                [*chromosome[:loc_0],
+                 *chromosome[loc_0:loc_1],
+                 *chromosome[loc_1:]])
+
+        # # add any unvisited cities
+        # unvisited = set(gene for gene in chromosome_1 if not(gene in child))
+        # seen = set()
+        # for i in range(len(child)):
+        #     if child[i] in seen:
+        #         child[i] = unvisited.pop()
+        #     else:
+        #         seen.add(child[i])
 
         assert len(set(child)) - len(child) == 0
 
@@ -404,6 +421,11 @@ class MySolver(Solver):
                         seqs.append([chromosome_1[i]])
         seqs = [seq for seq in seqs if len(seq) > 1]
 
+        # print(10*"-" + f" {group_num} " + 10*"-")
+        # print(f"chromosome_1 = {chromosome_1}")
+        # print(f"chromosome_2 = {chromosome_2}")
+        # print(f"seqs = {seqs}")
+
         # use maximum length sequence as base sequence
         child = []
         if len(seqs) > 0:
@@ -425,7 +447,7 @@ class MySolver(Solver):
                         # make sure no part of sequence is already in child
                         in_child = False
                         for city in seq:
-                            in_child = in_child or city in child
+                            in_child = in_child or (city in child)
 
                         if not in_child:
                             child = [*child, *seq[1:]]
@@ -442,24 +464,21 @@ class MySolver(Solver):
             # select next city as the nearest city in both chromosomes
             # with lowest pheromone
             start_city = int(child[-1])
-            neighbors_nc = []
             neighbors = []
-            self.get_neighbors(chromosome_1, start_city, child, neighbors_nc,neighbors)
-            self.get_neighbors(chromosome_2, start_city, child, neighbors_nc,neighbors)
+            self.get_neighbors(chromosome_1, start_city, child, neighbors)
+            self.get_neighbors(chromosome_2, start_city, child, neighbors)
 
             # print(f"neighbors = {neighbors}")
-            # print(f"neighbors_nc = {neighbors_nc}")
 
-            if len(neighbors_nc) > 0:
+            if len(neighbors) > 0:
                 max_pheromone = None
                 max_neighbor = None
-                for neighbor in neighbors_nc:
-                    pheromone = self.tau[group_num][start_city][int(neighbor)]
+                for neighbor in neighbors:
+                    pheromone = self.get_pheromone(group_num, start_city, int(neighbor))
                     if (max_pheromone is None) or pheromone > max_pheromone:
                         max_pheromone = pheromone
                         max_neighbor = neighbor
                 child.append(int(max_neighbor))
-                # print(f"adding {max_neighbor}")
             else:
                 min_dist = -1
                 closest_city = -1
@@ -477,17 +496,16 @@ class MySolver(Solver):
 
         return child
 
-    def get_neighbors(self, chromosome, start_city, child, neighbors_nc, neighbors):
+    def get_neighbors(self, chromosome, start_city, child, neighbors):
         length = len(chromosome)
-        for i in range(len(chromosome)):
+        for i in range(length):
             if chromosome[(i+1) % length] == start_city:
-                if not (chromosome[i] in child):
-                    neighbors_nc.append(chromosome[i])
-                if not (chromosome[(i+2) % length] in child):
-                    neighbors_nc.append(chromosome[(i+2) % length])
-
-                neighbors.append(chromosome[i])
-                neighbors.append(chromosome[(i+2) % length])
+                if not (chromosome[i] in child) and \
+                        not (chromosome[i] in neighbors):
+                    neighbors.append(chromosome[i])
+                if not (chromosome[(i+2) % length] in child) and \
+                        not (chromosome[(i+2) % length] in neighbors):
+                    neighbors.append(chromosome[(i+2) % length])
 
     def roulette_wheel_select(self,fitness):
         sum_fitness = sum(fitness)
