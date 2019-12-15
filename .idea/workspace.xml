@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f8724079-0974-470e-afb1-7c1a77e91f20" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/solvers.py" beforeDir="false" afterPath="$PROJECT_DIR$/solvers.py" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -22,22 +23,15 @@
   </component>
   <component name="ProjectId" id="1THXpLUbPz2mJOiURMj5bYz3p4e" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="pyconsole" />
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager" selected="Python.main">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
@@ -89,6 +83,18 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -114,5 +120,31 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="2099" y="437" width="424" height="484" key="FileChooserDialogImpl" timestamp="1576098402606">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state x="2099" y="437" width="424" height="484" key="FileChooserDialogImpl/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576098402606" />
+    <state width="1276" height="178" key="GridCell.Tab.0.bottom" timestamp="1576439641135">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state width="1276" height="178" key="GridCell.Tab.0.bottom/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576439641135" />
+    <state width="1276" height="178" key="GridCell.Tab.0.center" timestamp="1576439641135">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state width="1276" height="178" key="GridCell.Tab.0.center/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576439641135" />
+    <state width="1276" height="178" key="GridCell.Tab.0.left" timestamp="1576439641135">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state width="1276" height="178" key="GridCell.Tab.0.left/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576439641135" />
+    <state width="1276" height="178" key="GridCell.Tab.0.right" timestamp="1576439641135">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state width="1276" height="178" key="GridCell.Tab.0.right/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576439641135" />
+    <state x="1972" y="501" key="com.intellij.ide.util.TipDialog" timestamp="1576433947270">
+      <screen x="1600" y="283" width="1366" height="768" />
+    </state>
+    <state x="1972" y="501" key="com.intellij.ide.util.TipDialog/1600.283.1366.768/0.310.1600.590@1600.283.1366.768" timestamp="1576433947270" />
   </component>
 </project>

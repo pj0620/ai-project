@@ -16,10 +16,11 @@ class Solver(ABC):
 
 class MySolver(Solver):
     def __init__(self, g=4, beta=2, q0=0.9, tau_0=1,
-                 tau_min=0.25, tau_max=5, rho=0.1,
-                 perc_retain=0.8, CR = 1, R0=0.33,
-                 RMR = 0.3, T0 = 100, TF=60, PMR=0.2,
-                 C = 10, max_cycles=50):
+                 tau_min=0.6, tau_max=2.2, rho=0.1,
+                 perc_x=0.7,perc_y=0.3,
+                 CR = 1, R0=0.33, RMR = 0.3, T0 = 100, TF=0,
+                 PMR=0.2,C = 30, max_cycles=100,
+                 GA_generations=100):
         super().__init__()
 
         self.g=g
@@ -29,7 +30,8 @@ class MySolver(Solver):
         self.tau_min=tau_min
         self.tau_max=tau_max
         self.rho=rho
-        self.perc_retain=perc_retain
+        self.perc_x=perc_x
+        self.perc_y=perc_y
         self.CR = CR
         self.R0 = R0
         self.RMR = RMR
@@ -38,6 +40,7 @@ class MySolver(Solver):
         self.PMR = PMR
         self.C = C
         self.max_cycles = max_cycles
+        self.GA_generations = GA_generations
 
         self.n=self.graph=self.N=self.tau= \
             self.G=self.cycle_count= \
@@ -53,6 +56,13 @@ class MySolver(Solver):
             print("tau = ")
             print(f"{self.tau[i]}")
 
+    def print_chromosome(self):
+        np.set_printoptions(precision=1)
+        for i in range(self.g):
+            print(10*"-" + f" {i} " + 10*"-")
+            print("chromosomes = ")
+            print(f"{self.chromosomes[i]}")
+
     def print_gene_pool(self):
         np.set_printoptions(precision=1)
         for i in range(self.g):
@@ -65,18 +75,22 @@ class MySolver(Solver):
 
         self.problem=problem
         self.initialize_variables()
-        self.step1()
-        self.step2()
-        self.step3()
-        while self.cycle_count < self.max_cycles:
-            self.step4()
-            self.step5()
-            return
-            self.step6()
-            self.step7()
-            if self.cycle_count % self.C == 0 or True:
+        for cycle_count in range(self.max_cycles):
+            print(f"cycle = {cycle_count}")
+            # self.print_pher()
+            self.step1()
+            self.step2()
+            self.step3()
+            self.T = self.T0
+            for gen_count in range(self.GA_generations):
+                if gen_count > 0:
+                    self.step4()
+                self.step5()
+                self.step6()
+                self.step7()
+                self.T -= self.del_T
+            if cycle_count % self.C == 0:
                 self.step8()
-            self.cycle_count += 1
 
             min_length = None
             best_path = None
@@ -123,80 +137,74 @@ class MySolver(Solver):
                 for s in list(self.graph.nodes):
                     R1=random.random()
                     R2=random.random()
-                    v = 2*R1*(self.tau[rand_group][r][s] - self.tau[i][r][s]) + \
-                        2*R2*(self.tau[gb][r][s] - self.tau[i][r][s])
-                    self.tau[i][r][s] += v
-                    self.tau[i][r][s] = min(self.tau_max,self.tau[i][r][s])
-                    self.tau[i][r][s] = max(self.tau_min,self.tau[i][r][s])
+                    v = 2*R1*(self.get_pheromone(rand_group,r,s) - self.get_pheromone(i,r,s)) + \
+                        2*R2*(self.get_pheromone(gb,r,s) - self.get_pheromone(i,r,s))
+                    self.set_pheromone(i,r,s,v + self.get_pheromone(i,r,s))
 
     def step7(self):
         self.compute_fitness()
 
     def step6(self):
-        k = 1.38064852e-23
-        T = self.T0
-        del_T = int((self.T0-self.TF)/31)
-        while T > self.TF:
-            for group_num in range(self.g):
-                # mutate chromosome with probability self.RMR
-                if random.random() < self.RMR:
-                    # select random chromosome
-                    idx = random.randint(0, len(self.chromosomes[group_num]) - 1)
-                    S = self.chromosomes[group_num][idx]
+        # perform Mutation
+        for group_num in range(self.g):
+            # mutate chromosome with probability self.RMR
+            if random.random() < self.RMR:
+                # select random chromosome
+                idx = random.randint(0, self.N - 1)
+                S = self.chromosomes[group_num][idx]
 
-                    # create mutated gene
-                    i = random.randint(0,len(S)-1)
-                    j = random.randint(0,len(S)-1)
-                    while i == j:
-                        j=random.randint(0, len(S) - 1)
-                    Sp = S[:]
-                    temp = Sp[i]
-                    Sp[i] = Sp[j]
-                    Sp[j] = temp
+                # create mutated gene
+                i = random.randint(0,len(S)-1)
+                j = random.randint(0,len(S)-1)
+                while i == j:
+                    j=random.randint(0, len(S) - 1)
+                Sp = S[:]
+                temp = Sp[i]
+                Sp[i] = Sp[j]
+                Sp[j] = temp
 
-                    del_E = self.energy(Sp) - self.energy(S)
-                    if del_E < 0:
-                        P = math.exp( - del_E / (k * T))
-                        if random.random() < P:
-                            self.chromosomes[i][idx] = Sp
+                del_E = self.energy(Sp) - self.energy(S)
+                if del_E > 0:
+                    P = math.exp( - del_E / (self.k * self.T))
+                    if random.random() < P:
+                        self.chromosomes[i][idx] = Sp
 
-                # mutate phermone level with probability self.PMR
-                if random.random() < self.PMR:
-                    city_1 = random.choice(list(self.graph.nodes))
-                    city_2 = random.choice(list(self.graph.nodes))
-                    while city_1 == city_2:
-                        city_2=random.choice(list(self.graph.nodes))
-                    rand_pher = self.tau_min + self.tau_max*random.random()
-                    self.tau[group_num][city_1][city_2] = rand_pher
-                    self.tau[group_num][city_2][city_1] = rand_pher
-            T -= del_T
+            # mutate pheromone level of random edge
+            if random.random() < self.PMR:
+                city_1 = random.choice(list(self.graph.nodes))
+                city_2 = random.choice(list(self.graph.nodes))
+                while city_1 == city_2:
+                    city_2=random.choice(list(self.graph.nodes))
+                rand_pher = self.tau_min + (self.tau_max-self.tau_min)*random.random()
+                self.set_pheromone(group_num,city_1,city_2,rand_pher)
+                self.set_pheromone(group_num,city_2,city_1,rand_pher)
 
     def step5(self):
+        # perform Crossover operation
         for i in range(self.g):
-            chromosome_1=random.choice(self.chromosomes[i])
+            idx_1 = random.randint(0,len(self.chromosomes[i])-1)
+            chromosome_1=self.chromosomes[i][idx_1]
             chromosome_2=random.choice(self.chromosomes[i])
 
             # perform crossover with probability CR
-            # if random.random() > self.CR:
-            #     continue
-            # TODO uncomment
+            if random.random() > self.CR:
+                continue
 
             # choose bone-crossover or two point crossover
+            # TODO fix crossover operations
             child = None
-            # if random.random() > self.R0:
-            if True:
+            if random.random() > self.R0:
                 child = self.bone_crossover(chromosome_1,chromosome_2,i)
             else:
                 child = self.two_point_crossover(chromosome_1,chromosome_2)
 
             # replace random chromosome with child
-            rand_idx = random.randint(0,len(self.chromosomes[i])-1)
-            self.chromosomes[i][rand_idx] = child
+            self.chromosomes[i][idx_1] = child
 
     def step4(self):
-        # find fitness of each path
-        if self.fitness is None:
-            self.compute_fitness()
+        # find fitness of each path 
+        # if self.fitness is None:
+        #     self.compute_fitness()
 
         # select gene pool
         self.gene_pool = np.zeros(shape=(self.g,self.x+self.y,self.n))
@@ -211,39 +219,29 @@ class MySolver(Solver):
                 q = int(idx % self.N)
                 self.gene_pool[i][u] = self.chromosomes[p][q]
 
+        self.chromosomes = self.gene_pool
+
     def step3(self):
-        self.chromosomes = self.paths
+        self.chromosomes = self.paths[:]
 
     def step2(self):
-        # best path and corresponding distance
-        L_best=np.ones(shape=self.g)*-1
-        self.path_lengths = np.zeros(shape=(self.g,self.N))
-        edges_best=[set() for _ in range(self.g)]
-        for i in range(self.g):
-            for k in range(self.N):
-                edges = set()
-                for j in range(self.n):
-                    edge = (self.paths[i][k][ j   %self.n],
-                            self.paths[i][k][(j+1)%self.n])
-                    self.path_lengths[i][k] += self.dist(*edge)
-                    edges.add(edge)
-                if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
-                    L_best[i] = self.path_lengths[i][k]
-                    edges_best[i] = edges
-
-        # update pheromone levels
-        for i in range(self.g):
-            for r in list(self.graph.nodes):
-                for s in list(self.graph.nodes):
-                    del_tau = 0
-                    if (r, s) in edges_best[i]:
-                        del_tau = 1. / L_best[i]
-                    self.set_pheromone(i,r,s, (1-self.rho)*self.get_pheromone(i,r,s) \
-                                                + self.rho*del_tau)
-                    self.set_pheromone(i,r,s,min(self.tau_max, self.get_pheromone(i,r,s)))
+        self.update_pheromones_global()
 
     def step1(self):
         # STEP 1.1
+        # build traveling sequences using transition rules
+
+        # set of cities not yet visited by kth ant of the ith group
+        # adjacent to rth node
+        #  J[k][i][r]
+        self.J=[[set() for ___ in range(self.n + 2)] for __ in range(self.g)]
+        for k in range(self.N):
+            for i in range(self.g):
+                self.J[i][k]=set(self.graph.nodes)
+
+        # location of each ant in each group
+        self.G=np.array(
+            [[random.choice(list(self.graph.nodes)) for __ in range(self.N)] for _ in range(self.g)])
 
         # loop over groups
         for i in range(self.g):
@@ -256,6 +254,7 @@ class MySolver(Solver):
 
                 # which city out of n total cities in final path
                 for j in range(1, self.n):
+
                     # current city of this ant
                     self.J[i][k].remove(r)
                     q=random.random()
@@ -277,13 +276,15 @@ class MySolver(Solver):
                         sum_probs=0
                         nodes_shuffled=list(self.J[i][k])
                         random.shuffle(nodes_shuffled)
-                        rc = random.random()
+                        rand_num = random.random()
                         for s in nodes_shuffled:
                             prob=(self.get_pheromone(i,r,s) * (self.dist_inv(r, s) ** self.beta)) / sum_vals
                             sum_probs+=prob
-                            if sum_probs > rc:
+                            if sum_probs > rand_num:
                                 next_r = s
                                 break
+                        if next_r == -1:
+                            next_r = nodes_shuffled[-1]
 
                     self.paths[i][k][j] = next_r
                     r = next_r
@@ -291,6 +292,50 @@ class MySolver(Solver):
         assert len(set(self.paths[0][0])) - len(self.paths[0][0]) == 0
 
         # STEP 1.2
+        # Local pheromone update
+        self.update_pheromones_local()
+
+    def initialize_variables(self):
+        self.graph: networkx.Graph=self.problem.get_graph()
+
+        self.T = self.T0
+
+        # number of cities / remove cities if necessary
+        self.n=len(set(self.graph.nodes))
+        if self.n % self.g != 0:
+            r=self.n % self.g
+            print(f"removed {r} cities")
+            for k in range(r):
+                self.graph.remove_node(list(self.graph.nodes)[-1])
+            self.n=len(set(self.graph.nodes))
+
+        print(f"n = {self.n}")
+
+        # number of ants in each group
+        assert self.n % self.g == 0
+        self.N=int(self.n / self.g)
+
+        print(f"N = {self.N}")
+
+        self.x = int(self.N * self.perc_x)
+        self.y = int(self.N * self.perc_y)
+        if self.x + self.y < self.N:
+            self.x += 1
+
+        # pheromone level between each city in each group
+        self.tau=np.ones(shape=(self.g, self.n + 2, self.n + 2)) * self.tau_0
+
+        # path taken by each ant in each group
+        self.paths=np.ones(shape=(self.g, self.N, self.n))
+
+        self.fitness = None
+
+        # temperature variables
+        self.k=1.38064852e-23
+        self.T=self.T0
+        self.del_T=int((self.T0 - self.TF) / self.GA_generations)
+
+    def update_pheromones_local(self):
         for i in range(self.g):
             for s in list(self.graph.nodes):
                 for r in list(self.graph.nodes):
@@ -302,59 +347,46 @@ class MySolver(Solver):
                                            self.rho * self.tau_0
                                            )
 
-    def initialize_variables(self):
-        self.graph: networkx.Graph=self.problem.get_graph()
-        self.cycle_count=0
+    def update_pheromones_global(self):
+        # find path lengths
+        L_best=np.ones(shape=self.g) * -1
+        self.path_lengths=np.zeros(shape=(self.g, self.N))
+        edges_best=[set() for _ in range(self.g)]
+        for i in range(self.g):
+            for k in range(self.N):
+                edges=set()
+                for j in range(self.n):
+                    edge=(self.paths[i][k][j % self.n],
+                          self.paths[i][k][(j + 1) % self.n])
+                    # print(f"edge = {edge}")
+                    self.path_lengths[i][k]+=self.dist(*edge)
+                    edges.add(edge)
+                if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
+                    L_best[i]=self.path_lengths[i][k]
+                    edges_best[i]=edges
 
-        self.T = self.T0
-
-        # number of cities / remove cities if necessary
-        self.n=len(set(self.graph.nodes))
-        if self.n % self.g != 0:
-            r=self.n % self.g
-            print(f"r = {r}")
-            for k in range(r):
-                self.graph.remove_node(list(self.graph.nodes)[-1])
-            self.n=len(set(self.graph.nodes))
-
-        # number of ants in each group
-        assert self.n % self.g == 0
-        self.N=int(self.n / self.g)
-
-        self.x = int(self.N * self.perc_retain)
-        self.y = int(self.N * (1-self.perc_retain))
-        if self.x + self.y < self.N:
-            self.x += 1
-
-        # pheromone level between each city in each group
-        self.tau=np.ones(shape=(self.g, self.n + 2, self.n + 2)) * self.tau_0
-
-        # location of each ant in each group
-        print(f"self.graph.nodes = {list(self.graph.nodes)}")
-        self.G=np.array([[random.choice(list(self.graph.nodes)) for __ in range(self.N)] for _ in range(self.g)])
-
-        # set of cities not yet visited by kth ant of the ith group
-        # adjacent to rth node
-        #  J[k][i][r]
-        self.J=[[set() for ___ in range(self.n + 2)] for __ in range(self.g)]
-        for k in range(self.N):
-            for i in range(self.g):
-                self.J[i][k]=set(self.graph.nodes)
-
-        # path taken by each ant in each group
-        self.paths=np.ones(shape=(self.g, self.N, self.n))
-
-        self.fitness = None
+        # global pheromone update
+        for i in range(self.g):
+            for r in list(self.graph.nodes):
+                for s in list(self.graph.nodes):
+                    del_tau = 0
+                    if (r, s) in edges_best[i]:
+                        del_tau = 1. / L_best[i]
+                    self.set_pheromone(i,r,s, (1-self.rho)*self.get_pheromone(i,r,s) \
+                                                + self.rho*del_tau)
+                    self.set_pheromone(i,r,s,min(self.tau_max, self.get_pheromone(i,r,s)))
 
     def compute_fitness(self):
         self.fitness=np.zeros(shape=(self.g, self.N))
         for i in range(self.g):
             for k in range(self.N):
-                self.fitness[i][k]=self.path_len(self.chromosomes[i][k])
+                self.fitness[i][k]=1./self.path_len(self.chromosomes[i][k])
 
     def set_pheromone(self,group_num,u,v,new_val):
         n1=max(u, v)
         n2=min(u, v)
+        new_val = min(new_val,self.tau_max)
+        new_val = max(new_val,self.tau_min)
         self.tau[group_num][n1][n2] = new_val
     def get_pheromone(self,group_num,u,v):
         n1 = max(u, v)
@@ -524,7 +556,7 @@ class MySolver(Solver):
         for i in range(len(chromosome)-1):
             total_dist += self.dist(chromosome[i],
                                     chromosome[i+1])
-        return 1./float(total_dist)
+        return float(total_dist)
 
     def dist(self, a, b):
         return self.problem.wfunc(a, b)
