@@ -49,6 +49,8 @@ class MySolver(Solver):
             self.fitness=self.x=self.y=\
             self.gene_pool=None
 
+        self.step1_debug = False
+
     def print_pher(self):
         np.set_printoptions(precision=1)
         for i in range(self.g):
@@ -259,27 +261,33 @@ class MySolver(Solver):
                     self.J[i][k].remove(r)
                     q=random.random()
 
+                    if self.step1_debug: print(f"Step 1: r = {r}")
+
                     # find next city
                     next_r = -1
                     if q < self.q0:
+                        self.step1_debug: print("Step 1: q<q0")
                         # if False:
                         best_u, max_val=None, -1
                         for u in self.J[i][k]:
                             val=self.get_pheromone(i,r,u) * (self.dist_inv(r, u) ** self.beta)
+                            if self.step1_debug: print(f"Step 1: u = {u}, val = {val}")
                             if val > max_val or max_val is None:
                                 max_val=val
                                 best_u=u
-                        if not (best_u is None):
-                            next_r = best_u
+                        next_r = best_u
                     else:
-                        sum_vals=sum(self.tau[i][r][u] * (self.dist_inv(r, u) ** self.beta) for u in self.J[i][k])
+                        if self.step1_debug: print("Step 1: q>=q0")
+                        sum_vals=sum(self.get_pheromone(i,r,u) * (self.dist_inv(r, u) ** self.beta) for u in self.J[i][k])
                         sum_probs=0
                         nodes_shuffled=list(self.J[i][k])
                         random.shuffle(nodes_shuffled)
                         rand_num = random.random()
+                        if self.step1_debug: print(f"nodes_shuffled = {nodes_shuffled}")
                         for s in nodes_shuffled:
                             prob=(self.get_pheromone(i,r,s) * (self.dist_inv(r, s) ** self.beta)) / sum_vals
                             sum_probs+=prob
+                            if self.step1_debug: print(f" u = {s}, prob = {prob}")
                             if sum_probs > rand_num:
                                 next_r = s
                                 break
@@ -323,7 +331,7 @@ class MySolver(Solver):
             self.x += 1
 
         # pheromone level between each city in each group
-        self.tau=np.ones(shape=(self.g, self.n + 2, self.n + 2)) * self.tau_0
+        self.tau=np.ones(shape=(self.g, self.n + 1, self.n + 1)) * self.tau_0
 
         # path taken by each ant in each group
         self.paths=np.ones(shape=(self.g, self.N, self.n))
@@ -333,7 +341,7 @@ class MySolver(Solver):
         # temperature variables
         self.k=1.38064852e-23
         self.T=self.T0
-        self.del_T=int((self.T0 - self.TF) / self.GA_generations)
+        self.del_T=(self.T0 - self.TF) / self.GA_generations
 
     def update_pheromones_local(self):
         for i in range(self.g):
