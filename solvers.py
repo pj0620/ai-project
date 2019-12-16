@@ -18,7 +18,7 @@ class Solver(ABC):
 
 class MySolver(Solver):
     def __init__(self, g=4, beta=2, q0=0.9, tau_0=1,
-                 tau_min=0.5, tau_max=1.7, rho=0.1,
+                 tau_min=0.5, tau_max=2, rho=0.1,
                  perc_x=0.8,perc_y=0.2,
                  CR = 1, R0=0.33, RMR = 0.3, T0 = 100, TF=0,
                  PMR=0.2,C = 30, max_cycles=100,
@@ -195,7 +195,6 @@ class MySolver(Solver):
                     city_2=random.choice(list(self.graph.nodes))
                 rand_pher = self.tau_min + (self.tau_max-self.tau_min)*random.random()
                 self.set_pheromone(group_num,city_1,city_2,rand_pher)
-                self.set_pheromone(group_num,city_2,city_1,rand_pher)
 
     def step5(self):
         # perform Crossover operation
@@ -209,7 +208,6 @@ class MySolver(Solver):
                 continue
 
             # choose bone-crossover or two point crossover
-            # TODO fix crossover operations
             child = None
             if random.random() > self.R0:
                 child = self.bone_crossover(chromosome_1,chromosome_2,i)
@@ -389,9 +387,8 @@ class MySolver(Solver):
         for i in range(self.g):
             for k in range(self.N):
                 for j in range(self.n):
-                    edge=(self.paths[i][k][j % self.n],
-                          self.paths[i][k][(j + 1) % self.n])
-                    # print(f"edge = {edge}")
+                    edge=(int(self.paths[i][k][j % self.n]),
+                          int(self.paths[i][k][(j + 1) % self.n]))
                     self.path_lengths[i][k]+=self.dist(*edge)
                 if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
                     L_best[i]=self.path_lengths[i][k]
@@ -447,8 +444,9 @@ class MySolver(Solver):
 
     def path_len(self, path):
         length = 0
-        for i in range(len(path)-1):
-            length += self.dist(path[i],path[i+1])
+        for i in range(self.n):
+            length += self.dist(int(path[i % self.n]),
+                                int(path[(i+1) % self.n]))
         return length
 
     def two_point_crossover(self,chromosome_1,chromosome_2):
@@ -606,8 +604,8 @@ class MySolver(Solver):
     def energy(self, chromosome):
         total_dist = 0
         for i in range(self.n):
-            total_dist += self.dist(chromosome[i % self.n],
-                                    chromosome[(i+1) % self.n])
+            total_dist += self.dist(int(chromosome[i % self.n]),
+                                    int(chromosome[(i+1) % self.n]))
         return float(total_dist)
 
     def dist(self, a, b):
