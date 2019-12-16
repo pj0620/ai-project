@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 from solvers import *
 
 # load undircted graph
-# problem = tsplib95.load_problem('tsplib/mytest.tsp')
-problem = tsplib95.load_problem('tsplib/att48.tsp')
+problem = tsplib95.load_problem('tsplib/mytest.tsp')
+# problem = tsplib95.load_problem('tsplib/att48.tsp')
 graph: networkx.Graph = problem.get_graph()
 
-# solver = MySolver(g=2,
-#                   perc_x=0.7,
-#                   perc_y=0.3,
-#                   max_cycles=10,
-#                   GA_generations=10)
-solver = MySolver()
+solver = MySolver(g=2,
+                  perc_x=0.7,
+                  perc_y=0.3,
+                  max_cycles=10,
+                  GA_generations=10)
+# solver = MySolver()
 path, total_cost, history = solver.solve(problem)
 print(f"total path cost (my algorithm) = {total_cost}")
 

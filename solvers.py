@@ -50,9 +50,11 @@ class MySolver(Solver):
             self.gene_pool=None
 
         self.step1_debug = False
+        self.step2_debug = False
+        self.step3_debug = True
 
     def print_pher(self):
-        np.set_printoptions(precision=1)
+        np.set_printoptions(precision=2)
         for i in range(self.g):
             print(10*"-" + f" {i} " + 10*"-")
             print("tau = ")
@@ -359,30 +361,41 @@ class MySolver(Solver):
         # find path lengths
         L_best=np.ones(shape=self.g) * -1
         self.path_lengths=np.zeros(shape=(self.g, self.N))
-        edges_best=[set() for _ in range(self.g)]
+        best_path_idx=[-1 for i in range(self.g)]
         for i in range(self.g):
             for k in range(self.N):
-                edges=set()
                 for j in range(self.n):
                     edge=(self.paths[i][k][j % self.n],
                           self.paths[i][k][(j + 1) % self.n])
                     # print(f"edge = {edge}")
                     self.path_lengths[i][k]+=self.dist(*edge)
-                    edges.add(edge)
                 if L_best[i] == -1 or L_best[i] > self.path_lengths[i][k]:
                     L_best[i]=self.path_lengths[i][k]
-                    edges_best[i]=edges
+                    best_path_idx[i]=k
 
+        if self.step2_debug: print(f"Step 2: before global pheromone update")
+        if self.step2_debug: self.print_pher()
         # global pheromone update
         for i in range(self.g):
+            if self.step2_debug: print(f"Step 2: group {i} path_lengths = {self.path_lengths[i]}")
+            if self.step2_debug: print(f"Step 2: L_group_{i}_best = {L_best[i]}")
+            if self.step2_debug: print(f"Step 2: group {i} best_path = {self.paths[i][best_path_idx[i]]}")
             for r in list(self.graph.nodes):
                 for s in list(self.graph.nodes):
-                    del_tau = 0
-                    if (r, s) in edges_best[i]:
-                        del_tau = 1. / L_best[i]
-                    self.set_pheromone(i,r,s, (1-self.rho)*self.get_pheromone(i,r,s) \
-                                                + self.rho*del_tau)
+                    if r >= s:
+                        continue
+                    self.set_pheromone(i,r,s, (1-self.rho)*self.get_pheromone(i,r,s))
                     self.set_pheromone(i,r,s,min(self.tau_max, self.get_pheromone(i,r,s)))
+            for j in range(self.n):
+                edge=(int(self.paths[i][best_path_idx[i]][j % self.n]),
+                      int(self.paths[i][best_path_idx[i]][(j + 1) % self.n]))
+                self.set_pheromone(i,edge[0],edge[1],
+                                   self.get_pheromone(i,edge[0],edge[1]) +
+                                   1./L_best[i])
+
+
+        if self.step2_debug: print("Step 2: after global pheromone update")
+        if self.step2_debug: self.print_pher()
 
     def compute_fitness(self):
         self.fitness=np.zeros(shape=(self.g, self.N))
