@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+import progressbar
 from networkx import *
 import random
 import numpy as np
@@ -16,8 +18,8 @@ class Solver(ABC):
 
 class MySolver(Solver):
     def __init__(self, g=4, beta=2, q0=0.9, tau_0=1,
-                 tau_min=0.6, tau_max=2.2, rho=0.1,
-                 perc_x=0.7,perc_y=0.3,
+                 tau_min=0.5, tau_max=1.7, rho=0.1,
+                 perc_x=0.8,perc_y=0.2,
                  CR = 1, R0=0.33, RMR = 0.3, T0 = 100, TF=0,
                  PMR=0.2,C = 30, max_cycles=100,
                  GA_generations=100):
@@ -51,7 +53,8 @@ class MySolver(Solver):
 
         self.step1_debug = False
         self.step2_debug = False
-        self.step3_debug = True
+        self.step3_debug = False
+        self.step4_debug = True
 
     def print_pher(self):
         np.set_printoptions(precision=2)
@@ -77,10 +80,12 @@ class MySolver(Solver):
     def solve(self, problem):
         min_lengths = []
 
+        best_path = None
+        min_length = float('inf')
+
         self.problem=problem
         self.initialize_variables()
-        for cycle_count in range(self.max_cycles):
-            print(f"cycle = {cycle_count}")
+        for cycle_count in progressbar.progressbar(range(self.max_cycles)):
             # self.print_pher()
             self.step1()
             self.step2()
@@ -96,15 +101,20 @@ class MySolver(Solver):
             if cycle_count % self.C == 0:
                 self.step8()
 
-            min_length = None
-            best_path = None
+            best_path_gen = None
+            min_length_gen = float('inf')
             for i in range(self.g):
                 for chromosome in self.chromosomes[i]:
                     length = self.path_len(chromosome)
-                    if min_length == None or length < min_length:
-                        min_length = length
-                        best_path = chromosome
-            min_lengths.append(min_length)
+                    if length < min_length_gen:
+                        min_length_gen = length
+                        best_path_gen = chromosome
+            min_lengths.append(min_length_gen)
+
+            if min_length_gen < min_length:
+                min_length = min_length_gen
+                best_path = best_path_gen
+
 
         return best_path, min_length , min_lengths
 
@@ -139,6 +149,8 @@ class MySolver(Solver):
             # update pheromone levels
             for r in list(self.graph.nodes):
                 for s in list(self.graph.nodes):
+                    if r >= s:
+                        continue
                     R1=random.random()
                     R2=random.random()
                     v = 2*R1*(self.get_pheromone(rand_group,r,s) - self.get_pheromone(i,r,s)) + \
@@ -168,10 +180,12 @@ class MySolver(Solver):
                 Sp[j] = temp
 
                 del_E = self.energy(Sp) - self.energy(S)
-                if del_E > 0:
+                if self.energy(Sp) > self.energy(S):
                     P = math.exp( - del_E / (self.k * self.T))
                     if random.random() < P:
-                        self.chromosomes[i][idx] = Sp
+                        self.chromosomes[group_num][idx] = Sp
+                else:
+                    self.chromosomes[group_num][idx]=Sp
 
             # mutate pheromone level of random edge
             if random.random() < self.PMR:
@@ -210,6 +224,10 @@ class MySolver(Solver):
         # if self.fitness is None:
         #     self.compute_fitness()
 
+        # if self.step4_debug:
+        #     print(f"Step 4: before = {sum(list(self.fitness[0]))/len(list(self.fitness[0]))}")
+            # self.print_chromosome()
+
         # select gene pool
         self.gene_pool = np.zeros(shape=(self.g,self.x+self.y,self.n))
         for i in range(self.g):
@@ -223,10 +241,16 @@ class MySolver(Solver):
                 q = int(idx % self.N)
                 self.gene_pool[i][u] = self.chromosomes[p][q]
 
-        self.chromosomes = self.gene_pool
+        # if self.step4_debug:
+        #     print(f"Step 4: fitness frac = {sum(list(self.compute_fitness_gp()[0]))/sum(list(self.fitness[0]))}")
+
+        self.chromosomes = self.gene_pool[:]
 
     def step3(self):
         self.chromosomes = self.paths[:]
+        if self.step3_debug:
+            print(f"Step 3:")
+            self.print_chromosome()
 
     def step2(self):
         self.update_pheromones_global()
@@ -403,6 +427,13 @@ class MySolver(Solver):
             for k in range(self.N):
                 self.fitness[i][k]=1./self.path_len(self.chromosomes[i][k])
 
+    def compute_fitness_gp(self):
+        fitness_gp=np.zeros(shape=(self.g, self.N))
+        for i in range(self.g):
+            for k in range(self.N):
+                fitness_gp[i][k]=1./self.path_len(self.gene_pool[i][k])
+        return fitness_gp
+
     def set_pheromone(self,group_num,u,v,new_val):
         n1=max(u, v)
         n2=min(u, v)
@@ -427,25 +458,25 @@ class MySolver(Solver):
         loc_0 = random.randint(0,len(chromosome_1))
         loc_1 = random.randint(loc_0,len(chromosome_1))
 
-        chromosome = None
-        if random.random() < 0.5:
-            chromosome = chromosome_1
-        else:
-            chromosome = chromosome_2
+        # chromosome = None
+        # if random.random() < 0.5:
+        #     chromosome = chromosome_1
+        # else:
+        #     chromosome = chromosome_2
 
         child = np.array(
-                [*chromosome[:loc_0],
-                 *chromosome[loc_0:loc_1],
-                 *chromosome[loc_1:]])
+                [*chromosome_1[:loc_0],
+                 *chromosome_2[loc_0:loc_1],
+                 *chromosome_1[loc_1:]])
 
-        # # add any unvisited cities
-        # unvisited = set(gene for gene in chromosome_1 if not(gene in child))
-        # seen = set()
-        # for i in range(len(child)):
-        #     if child[i] in seen:
-        #         child[i] = unvisited.pop()
-        #     else:
-        #         seen.add(child[i])
+        # add any unvisited cities
+        unvisited = set(gene for gene in chromosome_1 if not(gene in child))
+        seen = set()
+        for i in range(len(child)):
+            if child[i] in seen:
+                child[i] = unvisited.pop()
+            else:
+                seen.add(child[i])
 
         assert len(set(child)) - len(child) == 0
 
@@ -574,9 +605,9 @@ class MySolver(Solver):
 
     def energy(self, chromosome):
         total_dist = 0
-        for i in range(len(chromosome)-1):
-            total_dist += self.dist(chromosome[i],
-                                    chromosome[i+1])
+        for i in range(self.n):
+            total_dist += self.dist(chromosome[i % self.n],
+                                    chromosome[(i+1) % self.n])
         return float(total_dist)
 
     def dist(self, a, b):
