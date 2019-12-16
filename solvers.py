@@ -54,7 +54,7 @@ class MySolver(Solver):
         self.step1_debug = False
         self.step2_debug = False
         self.step3_debug = False
-        self.step4_debug = True
+        self.step4_debug = False
 
     def print_pher(self):
         np.set_printoptions(precision=2)
@@ -334,20 +334,9 @@ class MySolver(Solver):
 
         # number of cities / remove cities if necessary
         self.n=len(set(self.graph.nodes))
-        if self.n % self.g != 0:
-            r=self.n % self.g
-            print(f"removed {r} cities")
-            for k in range(r):
-                self.graph.remove_node(list(self.graph.nodes)[-1])
-            self.n=len(set(self.graph.nodes))
-
-        print(f"n = {self.n}")
 
         # number of ants in each group
-        assert self.n % self.g == 0
-        self.N=int(self.n / self.g)
-
-        print(f"N = {self.N}")
+        self.N=30
 
         self.x = int(self.N * self.perc_x)
         self.y = int(self.N * self.perc_y)
@@ -423,13 +412,6 @@ class MySolver(Solver):
         for i in range(self.g):
             for k in range(self.N):
                 self.fitness[i][k]=1./self.path_len(self.chromosomes[i][k])
-
-    def compute_fitness_gp(self):
-        fitness_gp=np.zeros(shape=(self.g, self.N))
-        for i in range(self.g):
-            for k in range(self.N):
-                fitness_gp[i][k]=1./self.path_len(self.gene_pool[i][k])
-        return fitness_gp
 
     def set_pheromone(self,group_num,u,v,new_val):
         n1=max(u, v)
@@ -611,7 +593,7 @@ class MySolver(Solver):
     def dist(self, a, b):
         return self.problem.wfunc(a, b)
     def dist_inv(self, a, b):
-        return 1. / self.problem.wfunc(a, b)
+        return 1. / (self.problem.wfunc(a, b)+0.0000001)
 
 
 class GreedySolver(Solver):
